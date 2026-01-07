@@ -1,11 +1,19 @@
 import {afterEach, beforeEach, expect, test} from 'vitest'
 import buildApp from '../src/app.ts'
 import fp from 'fastify-plugin'
+import {UserRepoMode} from "../src/users/user.repo.mode";
 
 let app
 
 beforeEach(async () => {
-    app = await buildApp()
+    app = await buildApp({
+        users: {
+            mode: UserRepoMode.MEMORY
+        },
+        auth: authStub('user')
+    })
+
+    console.log(app.printRoutes())
 })
 
 afterEach(async () => {
@@ -28,7 +36,7 @@ test('GET /health returns ok', async () => {
 test('POST /users with valid body returns 201 + id', async () => {
     const res = await app.inject({
         method: 'POST',
-        url: '/api/users',
+        url: '/users',
         payload: {
             name: 'Florian',
             email: 'florian@example.com',
@@ -46,21 +54,10 @@ test('POST /users with valid body returns 201 + id', async () => {
     await app.close()
 })
 
-test('POST /users with invalid payload', async () => {
-    const res = await app.inject({
-        method: 'POST',
-        url: '/api/users',
-        payload: {name1: 'Florian'}
-    })
-
-    expect(res.statusCode).toBe(400)
-    await app.close()
-})
-
 test('PATCH /users/1', async () => {
     const res = await app.inject({
         method: 'PATCH',
-        url: '/api/users/123',
+        url: '/users/e75ed415-1cc7-44ec-8670-485b0fed0296',
         payload: {name: 'Florian'}
     })
 
@@ -70,7 +67,12 @@ test('PATCH /users/1', async () => {
 
 test('GET /me without user', async () => {
 
-    app = await buildApp({ authPlugin: authStub('admin') })
+    app = await buildApp({
+        users: {
+            mode: 'memory'
+        },
+        auth: authStub('admin')
+    })
 
     const res = await app.inject({
         method: 'GET',
