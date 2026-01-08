@@ -1,13 +1,19 @@
 import fp from 'fastify-plugin'
 import type {FastifyPluginAsync} from 'fastify'
-import type {CreateUser, PatchUser, UserRepo} from './user.repo'
+import type {UserRepo} from './user.repo'
 import {PgUserRepo} from './user.repo.pg'
 import {MemoryUserRepo} from './user.repo.memory'
 import {UserRepoMode} from "./user.repo.mode";
+import {CreateUserSchema, PatchUserSchema} from "./user.schema";
+import {z} from "zod";
+import {serializerCompiler, validatorCompiler, ZodTypeProvider} from "fastify-type-provider-zod";
 
 type UsersPluginOpts =
-     { mode: UserRepoMode }
-const usersPlugin: FastifyPluginAsync<UsersPluginOpts> = async (fastify, opts) => {
+    { mode: UserRepoMode }
+const usersPlugin: FastifyPluginAsync<UsersPluginOpts> = async (fastify_, opts) => {
+    const fastify = fastify_.withTypeProvider<ZodTypeProvider>();
+    fastify.setValidatorCompiler(validatorCompiler)
+    fastify.setSerializerCompiler(serializerCompiler)
     let repo: UserRepo
 
     if (opts.mode === UserRepoMode.MEMORY) {
@@ -19,19 +25,25 @@ const usersPlugin: FastifyPluginAsync<UsersPluginOpts> = async (fastify, opts) =
 
     fastify.decorate('userRepo', repo)
 
-    fastify.post<{
-        Body: CreateUser
-    }>('/users', {schema: {}}, async (request, reply) => {
+    fastify.post('/users', {
+        schema: {
+            body: CreateUserSchema
+        }
+    }, async (request, reply) => {
         const user = await fastify.userRepo.create(request.body)
-        reply.code(201).header('Location', `/users/${user.id}`)
-        return {id: user.id, name: user.name}
+        return reply.code(201).header('Location', `/users/${user.id}`).send({id: user.id, name: user.name})
     })
 
-    fastify.patch<{ Params: { id: string }; Body: PatchUser }>('/users/:userId', {schema: {}}, async (request, reply) => {
-        const { id } = request.params
-        const user = await fastify.userRepo.patch(id, request.body)
-        await fastify.userRepo.patch(id, request.body)
-        reply.code(204).send()
+    fastify.patch('/users/:userId', {
+        schema: {
+            params: z.object({
+                userId: z.string().uuid()
+            }),
+            body: PatchUserSchema
+        }
+    }, async (request, reply) => {
+        await fastify.userRepo.patch(request.params.userId, request.body)
+        return reply.code(204).send()
     })
 }
 export default fp(usersPlugin)

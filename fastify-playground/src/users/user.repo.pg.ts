@@ -1,6 +1,7 @@
 // src/users/user.repo.pg.ts
 import type { Pool } from 'pg'
-import type { UserRepo, CreateUser, PatchUser, User } from './user.repo'
+import type { UserRepo } from './user.repo'
+import {CreateUser, User, PatchUser} from "./user.schema";
 
 export class PgUserRepo implements UserRepo {
     constructor(private pool: Pool) {}

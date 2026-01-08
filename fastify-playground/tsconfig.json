@@ -6,15 +6,7 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node"],
-    "baseUrl": ".",
-    "paths": {
-      "@src/*": ["src/*"],
-      "@users/*": ["src/users/*"],
-      "@plugins/*": ["src/plugins/*"],
-      "@db/*": ["src/plugins/db/*"],
-      "@routes/*": ["src/routes/*"]
-    }
+    "types": ["node"]
   },
   "include": ["src"]
 }

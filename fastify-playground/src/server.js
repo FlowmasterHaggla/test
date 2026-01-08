@@ -1,7 +1,7 @@
-const buildApp = require('./app')
+import { build } from './app.ts';
 
 async function start () {
-    const app = await buildApp()
+    const app = await build()
     await app.listen({ port: 3000 })
 }
 

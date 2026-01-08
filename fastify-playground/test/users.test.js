@@ -1,16 +1,16 @@
 import {afterEach, beforeEach, expect, test} from 'vitest'
-import buildApp from '../src/app.ts'
+import {build} from '../src/app.ts'
 import fp from 'fastify-plugin'
 import {UserRepoMode} from "../src/users/user.repo.mode";
 
 let app
 
 beforeEach(async () => {
-    app = await buildApp({
+    app = await build({
         users: {
             mode: UserRepoMode.MEMORY
         },
-        auth: authStub('user')
+        authPluginOverride: authStub('user')
     })
 
     console.log(app.printRoutes())
@@ -67,11 +67,11 @@ test('PATCH /users/1', async () => {
 
 test('GET /me without user', async () => {
 
-    app = await buildApp({
+    app = await build({
         users: {
             mode: 'memory'
         },
-        auth: authStub('admin')
+        authPluginOverride: authStub('admin')
     })
 
     const res = await app.inject({

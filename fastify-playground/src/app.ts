@@ -2,22 +2,24 @@ import authPlugin from './plugins/auth.plugin'
 import meRoutes from './routes/me.routes'
 import postgresPlugin from "./plugins/db/postgres.plugin";
 import usersRoutes from './users/users'
-import {UserRepoMode} from "@users/user.repo.mode";
-
-const fastifyFactory = require('fastify')
+import {UserRepoMode} from "./users/user.repo.mode";
+import {serializerCompiler, validatorCompiler, ZodTypeProvider} from "fastify-type-provider-zod";
+import Fastify, {FastifyInstance, FastifyPluginAsync} from 'fastify';
 
 type BuildAppOpts = {
     users?: {
-        mode: UserRepoMode
+        mode?: UserRepoMode
     }
     db?: {
         connectionString?: string
     }
-    auth?: Parameters<typeof authPlugin>[1]
+    authPluginOverride?: FastifyPluginAsync;
 }
 
-module.exports = async function buildApp(opts: BuildAppOpts = {}) {
-    const fastify = fastifyFactory({logger: true, ...opts})
+const build = async (opts: BuildAppOpts = {}): Promise<FastifyInstance> => {
+    let fastify: FastifyInstance = Fastify({logger: true, ...opts}).withTypeProvider<ZodTypeProvider>()
+    fastify.setValidatorCompiler(validatorCompiler)
+    fastify.setSerializerCompiler(serializerCompiler)
 
     fastify.register(async (api: any) => {
             const usersMode = opts.users?.mode ?? 'pg'
@@ -34,9 +36,11 @@ module.exports = async function buildApp(opts: BuildAppOpts = {}) {
         }
     )
     // Route-Plugin registrieren
-    fastify.register(opts.auth ?? authPlugin)
+    let plugin = opts.authPluginOverride ?? authPlugin;
+    fastify.register(plugin)
     fastify.register(meRoutes)
-    fastify.register(usersRoutes, {mode: opts.users?.mode})
+    let mode = opts.users?.mode?? UserRepoMode.PG;
+    fastify.register(usersRoutes, {mode})
     fastify.register(require('./routes/health'))
 
     fastify.setErrorHandler((err: any, request: any, reply: any) => {
@@ -53,3 +57,5 @@ module.exports = async function buildApp(opts: BuildAppOpts = {}) {
 
     return fastify
 }
+
+export {build};

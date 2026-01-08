@@ -1,6 +1,7 @@
 // src/users/user.repo.memory.ts
-import type { UserRepo, CreateUser, PatchUser, User } from '@users/user.repo'
+import type { UserRepo} from '@users/user.repo'
 import crypto from 'node:crypto'
+import {CreateUser, PatchUser, User} from "@users/user.schema";
 
 export class MemoryUserRepo implements UserRepo {
     private store = new Map<string, User>()
@@ -15,6 +16,7 @@ export class MemoryUserRepo implements UserRepo {
         const existing = this.store.get(id)
         if (!existing) return
         this.store.set(id, { ...existing, ...data })
+        return
     }
 
     async findById(id: string): Promise<User | null> {
